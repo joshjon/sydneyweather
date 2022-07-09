@@ -21,12 +21,10 @@ func TestRegisterService(t *testing.T) {
 
 func TestService_GetWeather(t *testing.T) {
 	e := echo.New()
-	req := httptest.NewRequest(http.MethodGet, "/v1/weather", nil)
+	req := httptest.NewRequest(http.MethodGet, "/v1/weather?city=sydney", nil)
 	rec := httptest.NewRecorder()
 
 	ctx := e.NewContext(req, rec)
-	ctx.SetParamNames("city")
-	ctx.SetParamValues("sydney")
 
 	s := NewService()
 	err := s.GetWeather(ctx)
