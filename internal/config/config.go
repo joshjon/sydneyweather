@@ -19,10 +19,11 @@ type Config struct {
 
 func Load() (*Config, error) {
 	var cfg Config
-
 	var filepath string
+
 	flag.StringVar(&filepath, "config", "", "yaml config file path")
 	flag.Parse()
+
 	if filepath == "" {
 		return nil, errors.New("required flag 'config' was not provided")
 	}

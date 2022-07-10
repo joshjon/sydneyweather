@@ -1,4 +1,4 @@
-.PHONY: start stop unit
+.PHONY: start stop unit integration
 
 start:
 	docker build -t local/sydneyweather .
@@ -12,3 +12,6 @@ stop:
 
 unit:
 	go test -count=1 ./...
+
+integration:
+	go test -count=1 ./test -tags=integration

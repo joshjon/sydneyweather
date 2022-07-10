@@ -40,11 +40,7 @@ func main() {
 	}
 }
 
-type serviceServer interface {
-	GetWeather(ctx echo.Context) error
-}
-
-func registerService(e *echo.Echo, s serviceServer) {
+func registerService(e *echo.Echo, s *api.Service) {
 	v1 := e.Group("/v1")
 	v1.GET("/weather", s.GetWeather)
 }
