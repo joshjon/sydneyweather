@@ -12,6 +12,9 @@ const (
 	openWeatherBaseURL  = "https://api.openweathermap.org"
 )
 
+// WeatherStackClient is a simple client for retrieving basic weather data from
+// the weatherstack API. A valid API key must be provided in order to successfully
+// authenticate on each request.
 type WeatherStackClient struct {
 	http   *resty.Client
 	apiKey string
@@ -25,6 +28,7 @@ func NewWeatherStackClient(apiKey string) *WeatherStackClient {
 	}
 }
 
+// GetWeather returns the temperature and wind speed for the specified city.
 func (c *WeatherStackClient) GetWeather(city string) (*WeatherStackResponse, error) {
 	req := c.http.R().
 		SetQueryParam("access_key", c.apiKey).
@@ -34,6 +38,9 @@ func (c *WeatherStackClient) GetWeather(city string) (*WeatherStackResponse, err
 	return get[WeatherStackResponse, WeatherStackErrorResponse](req, "/current")
 }
 
+// OpenWeatherClient is a simple client for retrieving basic weather data from
+// the OpenWeather API. A valid API key must be provided in order to successfully
+// authenticate on each request.
 type OpenWeatherClient struct {
 	http   *resty.Client
 	apiKey string
@@ -46,6 +53,7 @@ func NewOpenWeatherClient(apiKey string) *OpenWeatherClient {
 	}
 }
 
+// GetWeather returns the temperature and wind speed for the specified city.
 func (c *OpenWeatherClient) GetWeather(city string) (*OpenWeatherResponse, error) {
 	req := c.http.R().
 		SetQueryParam("appid", c.apiKey).
@@ -55,6 +63,9 @@ func (c *OpenWeatherClient) GetWeather(city string) (*OpenWeatherResponse, error
 	return get[OpenWeatherResponse, OpenWeatherErrorResponse](req, "/data/2.5/weather")
 }
 
+// get performs a GET request to the specified URL and returns the response.
+// The R and E type parameters are used when unmarshalling any response or error
+// body.
 func get[R any, E any](req *resty.Request, url string) (*R, error) {
 	httpResp, err := req.Get(url)
 	if err != nil {

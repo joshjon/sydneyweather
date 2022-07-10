@@ -11,6 +11,7 @@ import (
 	"github.com/joshjon/sydneyweather/internal/config"
 )
 
+// main starts a new echo server registered with the sydney weather service.
 func main() {
 	cfg, err := config.Load()
 	if err != nil {
@@ -21,7 +22,6 @@ func main() {
 	e.Use(middleware.Logger())
 
 	serviceCfg := api.Config{
-		City:               "Sydney",
 		WeatherStackAPIKey: cfg.WeatherStackAPIKey,
 		OpenWeatherAPIKey:  cfg.OpenWeatherAPIKey,
 		CacheExpiry:        cfg.CacheExpiry,

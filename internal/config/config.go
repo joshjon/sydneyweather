@@ -17,6 +17,8 @@ type Config struct {
 	OpenWeatherAPIKey  string        `yaml:"openWeatherAPIKey" envconfig:"OPEN_WEATHER_KEY" validate:"required"`
 }
 
+// Load loads config from a yaml file which is specified by the 'config' flag
+// and also from environment variables.
 func Load() (*Config, error) {
 	var cfg Config
 	var filepath string

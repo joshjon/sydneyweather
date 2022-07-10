@@ -21,15 +21,16 @@ type OpenWeatherClient interface {
 	GetWeather(city string) (*weather.OpenWeatherResponse, error)
 }
 
+// Service is an HTTP api that provides basic weather data for a given city.
+// The service is configured to only accept 'sydney' as a city, although, it can
+// be easily tweaked to support any city if required.
 type Service struct {
-	City      string
 	primary   WeatherStackClient
 	failOver  OpenWeatherClient
 	respCache *valueCache[*GetWeatherResponse]
 }
 
 type Config struct {
-	City               string
 	WeatherStackAPIKey string
 	OpenWeatherAPIKey  string
 	CacheExpiry        time.Duration
@@ -37,7 +38,6 @@ type Config struct {
 
 func NewService(cfg Config) *Service {
 	return &Service{
-		City:      cfg.City,
 		primary:   weather.NewWeatherStackClient(cfg.WeatherStackAPIKey),
 		failOver:  weather.NewOpenWeatherClient(cfg.OpenWeatherAPIKey),
 		respCache: newValueCache[*GetWeatherResponse](cfg.CacheExpiry),
@@ -49,6 +49,9 @@ type GetWeatherResponse struct {
 	TempDegrees int `json:"temperature_degrees"`
 }
 
+// GetWeather returns the temperature and wind speed for the specified city.
+// Data retrieval is prioritized in the following order: cache, primary source,
+// fail over source.
 func (s *Service) GetWeather(ctx echo.Context) error {
 	if strings.ToLower(ctx.QueryParam("city")) != city {
 		return echo.NewHTTPError(http.StatusBadRequest, "query param 'city' must have value 'sydney'")
@@ -65,7 +68,7 @@ func (s *Service) GetWeather(ctx echo.Context) error {
 		}
 	}()
 
-	primaryResp, err := s.primary.GetWeather(s.City)
+	primaryResp, err := s.primary.GetWeather(city)
 	if err == nil {
 		resp = &GetWeatherResponse{
 			WindSpeed:   primaryResp.Current.WindSpeed,
@@ -75,7 +78,7 @@ func (s *Service) GetWeather(ctx echo.Context) error {
 	}
 	log.Printf("error getting weather from primary source: %v", err)
 
-	failOverResp, err := s.failOver.GetWeather(s.City)
+	failOverResp, err := s.failOver.GetWeather(city)
 	if err == nil {
 		resp = &GetWeatherResponse{
 			WindSpeed:   int(failOverResp.Wind.Speed),
