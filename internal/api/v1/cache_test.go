@@ -14,13 +14,17 @@ func TestValueCache(t *testing.T) {
 	c.put(&wantVal)
 
 	// Present
+	require.False(t, c.expired())
 	gotVal, ok := c.get()
 	require.True(t, ok)
 	require.Equal(t, wantVal, *gotVal)
 
 	// Expired
 	time.Sleep(expiry + time.Millisecond)
+	require.True(t, c.expired())
+
+	// Stale value should still be present
 	gotVal, ok = c.get()
-	require.False(t, ok)
-	require.Nil(t, gotVal)
+	require.True(t, ok)
+	require.Equal(t, wantVal, *gotVal)
 }

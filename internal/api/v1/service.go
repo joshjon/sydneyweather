@@ -50,15 +50,17 @@ type GetWeatherResponse struct {
 }
 
 // GetWeather returns the temperature and wind speed for the specified city.
-// Data retrieval is prioritized in the following order: cache, primary source,
-// fail over source.
+// Data retrieval is prioritized in the following order: cache (non expired),
+// primary source, fail over source, cache (stale).
 func (s *Service) GetWeather(ctx echo.Context) error {
 	if strings.ToLower(ctx.QueryParam("city")) != city {
 		return echo.NewHTTPError(http.StatusBadRequest, "query param 'city' must have value 'sydney'")
 	}
 
-	if resp, ok := s.respCache.get(); ok {
-		return ctx.JSON(http.StatusOK, resp)
+	if !s.respCache.expired() {
+		if resp, ok := s.respCache.get(); ok {
+			return ctx.JSON(http.StatusOK, resp)
+		}
 	}
 
 	var resp *GetWeatherResponse
@@ -76,7 +78,7 @@ func (s *Service) GetWeather(ctx echo.Context) error {
 		}
 		return ctx.JSON(http.StatusOK, resp)
 	}
-	log.Printf("error getting weather from primary source: %v", err)
+	log.Printf("error getting weather from primary source: %v\n", err)
 
 	failOverResp, err := s.failOver.GetWeather(city)
 	if err == nil {
@@ -86,7 +88,12 @@ func (s *Service) GetWeather(ctx echo.Context) error {
 		}
 		return ctx.JSON(http.StatusOK, resp)
 	}
-	log.Printf("error getting weather from fail over source: %v", err)
+	log.Printf("error getting weather from fail over source: %v\n", err)
+
+	// Serve stale weather data
+	if resp, ok := s.respCache.get(); ok {
+		return ctx.JSON(http.StatusOK, resp)
+	}
 
 	return echo.NewHTTPError(http.StatusServiceUnavailable)
 }

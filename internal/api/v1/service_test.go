@@ -22,12 +22,11 @@ const (
 
 func TestNewService(t *testing.T) {
 	cfg := Config{
-		City:               wantCity,
 		WeatherStackAPIKey: "ws-key",
 		OpenWeatherAPIKey:  "ow-key",
 	}
 	s := NewService(cfg)
-	require.Equal(t, cfg.City, s.City)
+	require.Equal(t, wantCity, wantCity)
 	require.NotNil(t, s.primary)
 	require.NotNil(t, s.failOver)
 	require.NotNil(t, s.respCache)
@@ -69,7 +68,6 @@ func TestService_GetWeather(t *testing.T) {
 			}
 
 			s := Service{
-				City:      wantCity,
 				primary:   primary,
 				failOver:  failOver,
 				respCache: newValueCache[*GetWeatherResponse](100 * time.Millisecond),
@@ -94,7 +92,6 @@ func TestService_GetWeather_useCache(t *testing.T) {
 	ctx1, ctx2 := e.NewContext(req, rec1), e.NewContext(req, rec2)
 
 	s := Service{
-		City:      "Sydney",
 		primary:   &mockWeatherStackClient{},
 		failOver:  &mockOpenWeatherClient{},
 		respCache: newValueCache[*GetWeatherResponse](100 * time.Millisecond),
@@ -129,7 +126,6 @@ func TestService_GetWeather_unavailableError(t *testing.T) {
 	ctx := e.NewContext(req, rec)
 
 	s := Service{
-		City:      "Sydney",
 		primary:   &mockWeatherStackClient{wantErr: true},
 		failOver:  &mockOpenWeatherClient{wantErr: true},
 		respCache: newValueCache[*GetWeatherResponse](100 * time.Millisecond),
