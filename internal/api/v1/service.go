@@ -78,8 +78,8 @@ func (s *Service) GetWeather(ctx echo.Context) error {
 	failOverResp, err := s.failOver.GetWeather(s.City)
 	if err == nil {
 		resp = &GetWeatherResponse{
-			WindSpeed:   failOverResp.Wind.Speed,
-			TempDegrees: failOverResp.Main.Temp,
+			WindSpeed:   int(failOverResp.Wind.Speed),
+			TempDegrees: int(failOverResp.Main.Temp),
 		}
 		return ctx.JSON(http.StatusOK, resp)
 	}

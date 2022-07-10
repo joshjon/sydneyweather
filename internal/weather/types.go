@@ -21,11 +21,11 @@ type WeatherStackErrorResponse struct {
 }
 
 type OpenWeatherMain struct {
-	Temp int `json:"temp"`
+	Temp float64 `json:"temp"`
 }
 
 type OpenWeatherWind struct {
-	Speed int `json:"speed"`
+	Speed float64 `json:"speed"`
 }
 
 type OpenWeatherResponse struct {
