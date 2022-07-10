@@ -4,6 +4,7 @@ import (
 	"flag"
 	"log"
 	"net"
+	"time"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -11,13 +12,20 @@ import (
 	"github.com/joshjon/sydneyweather/internal/api/v1"
 )
 
+var cfg = api.Config{
+	City:               "Sydney",
+	WeatherStackAPIKey: "",
+	OpenWeatherAPIKey:  "",
+	CacheExpiry:        3 * time.Second,
+}
+
 func main() {
 	var port = flag.Int("p", 8080, "Port for HTTP server")
 	flag.Parse()
 	e := echo.New()
 	e.Use(middleware.Logger())
 
-	service := api.NewService(api.Config{})
+	service := api.NewService(cfg)
 	registerService(e, service)
 
 	addr := &net.TCPAddr{

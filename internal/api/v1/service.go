@@ -2,6 +2,7 @@ package api
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/labstack/echo/v4"
 
@@ -27,13 +28,15 @@ type Config struct {
 	City               string
 	WeatherStackAPIKey string
 	OpenWeatherAPIKey  string
+	CacheExpiry        time.Duration
 }
 
 func NewService(cfg Config) *Service {
 	return &Service{
-		City:     cfg.City,
-		primary:  weather.NewWeatherStackClient(cfg.WeatherStackAPIKey),
-		failOver: weather.NewOpenWeatherClient(cfg.OpenWeatherAPIKey),
+		City:      cfg.City,
+		primary:   weather.NewWeatherStackClient(cfg.WeatherStackAPIKey),
+		failOver:  weather.NewOpenWeatherClient(cfg.OpenWeatherAPIKey),
+		respCache: newValueCache[*GetWeatherResponse](cfg.CacheExpiry),
 	}
 }
 

@@ -17,8 +17,21 @@ import (
 const (
 	wantTemp  = 10
 	wantSpeed = 20
-	city      = "Sydney"
+	wantCity  = "Sydney"
 )
+
+func TestNewService(t *testing.T) {
+	cfg := Config{
+		City:               wantCity,
+		WeatherStackAPIKey: "ws-key",
+		OpenWeatherAPIKey:  "ow-key",
+	}
+	s := NewService(cfg)
+	require.Equal(t, cfg.City, s.City)
+	require.NotNil(t, s.primary)
+	require.NotNil(t, s.failOver)
+	require.NotNil(t, s.respCache)
+}
 
 func TestService_GetWeather(t *testing.T) {
 	tests := []struct {
@@ -41,7 +54,7 @@ func TestService_GetWeather(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			e := echo.New()
-			req := httptest.NewRequest(http.MethodGet, "/v1/weather?city="+city, nil)
+			req := httptest.NewRequest(http.MethodGet, "/v1/weather?city="+wantCity, nil)
 			rec := httptest.NewRecorder()
 			ctx := e.NewContext(req, rec)
 
@@ -56,7 +69,7 @@ func TestService_GetWeather(t *testing.T) {
 			}
 
 			s := Service{
-				City:      city,
+				City:      wantCity,
 				primary:   primary,
 				failOver:  failOver,
 				respCache: newValueCache[*GetWeatherResponse](100 * time.Millisecond),

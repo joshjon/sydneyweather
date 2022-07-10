@@ -19,7 +19,7 @@ func TestValueCache(t *testing.T) {
 	require.Equal(t, wantVal, *gotVal)
 
 	// Expired
-	time.Sleep(expiry + (10 * time.Millisecond))
+	time.Sleep(expiry + time.Millisecond)
 	gotVal, ok = c.get()
 	require.False(t, ok)
 	require.Nil(t, gotVal)
