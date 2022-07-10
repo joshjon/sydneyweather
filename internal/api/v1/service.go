@@ -4,28 +4,37 @@ import (
 	"net/http"
 
 	"github.com/labstack/echo/v4"
+
+	"github.com/joshjon/sydneyweather/internal/weather"
 )
 
-type ServiceServer interface {
-	GetWeather(ctx echo.Context) error
+type WeatherStackClient interface {
+	GetWeather(city string) (*weather.WeatherStackResponse, error)
 }
 
-func RegisterService(e *echo.Echo, s ServiceServer) {
-	v1 := e.Group("/v1")
-	v1.GET("/weather", s.GetWeather)
-}
-
-type WeatherClient interface {
-	GetWeather(city string)
+type OpenWeatherClient interface {
+	GetWeather(city string) (*weather.OpenWeatherResponse, error)
 }
 
 type Service struct {
-	WeatherStackClient WeatherClient
-	OpenWeatherClient  WeatherClient
+	City      string
+	primary   WeatherStackClient
+	failOver  OpenWeatherClient
+	respCache *valueCache[*GetWeatherResponse]
 }
 
-func NewService() *Service {
-	return &Service{}
+type Config struct {
+	City               string
+	WeatherStackAPIKey string
+	OpenWeatherAPIKey  string
+}
+
+func NewService(cfg Config) *Service {
+	return &Service{
+		City:     cfg.City,
+		primary:  weather.NewWeatherStackClient(cfg.WeatherStackAPIKey),
+		failOver: weather.NewOpenWeatherClient(cfg.OpenWeatherAPIKey),
+	}
 }
 
 type GetWeatherResponse struct {
@@ -34,8 +43,38 @@ type GetWeatherResponse struct {
 }
 
 func (s *Service) GetWeather(ctx echo.Context) error {
-	return ctx.JSON(http.StatusOK, GetWeatherResponse{
-		WindSpeed:   10,
-		TempDegrees: 10,
-	})
+	if resp, ok := s.respCache.get(); ok {
+		return ctx.JSON(http.StatusOK, resp)
+	}
+
+	var resp *GetWeatherResponse
+	defer func() {
+		if resp != nil {
+			s.respCache.put(&resp)
+		}
+	}()
+
+	primaryResp, err := s.primary.GetWeather(s.City)
+	if err == nil {
+		resp = &GetWeatherResponse{
+			WindSpeed:   primaryResp.Current.WindSpeed,
+			TempDegrees: primaryResp.Current.Temperature,
+		}
+		return ctx.JSON(http.StatusOK, resp)
+	}
+
+	// TODO: log error
+
+	failOverResp, err := s.failOver.GetWeather(s.City)
+	if err == nil {
+		resp = &GetWeatherResponse{
+			WindSpeed:   failOverResp.Wind.Speed,
+			TempDegrees: failOverResp.Main.Temp,
+		}
+		return ctx.JSON(http.StatusOK, resp)
+	}
+
+	// TODO: log error
+
+	return echo.NewHTTPError(http.StatusServiceUnavailable)
 }

@@ -1,49 +1,90 @@
 package weather
 
 import (
-	"time"
+	"encoding/json"
+	"fmt"
 
 	"github.com/go-resty/resty/v2"
 )
 
+const (
+	weatherStackBaseURL = "http://api.weatherstack.com"
+	openWeatherBaseURL  = "https://api.openweathermap.org"
+)
+
 type WeatherStackClient struct {
-	client *resty.Client
+	http   *resty.Client
 	apiKey string
 }
 
 func NewWeatherStackClient(apiKey string) *WeatherStackClient {
 	return &WeatherStackClient{
-		client: newClient("http://api.weatherstack.com/").
-			SetQueryParam("access_key", apiKey).
-			SetQueryParam("units", "m"), // Celsius
+		http:   newRestyClient(weatherStackBaseURL),
 		apiKey: apiKey,
 	}
 }
 
-type WeatherStackResponse struct {
-	Current struct {
-		WindSpeed   int `json:"wind_speed"`
-		Temperature int `json:"temperature"`
-	} `json:"current"`
+func (c *WeatherStackClient) GetWeather(city string) (*WeatherStackResponse, error) {
+	req := c.http.R().
+		SetQueryParam("access_key", c.apiKey).
+		SetQueryParam("units", "m"). // Celsius
+		SetQueryParam("query", city).
+		SetResult(WeatherStackResponse{})
+	return get[WeatherStackResponse, WeatherStackErrorResponse](req, "/current")
 }
 
-func (c *WeatherStackClient) GetWeather(city string) (*WeatherStackResponse, error) {
-	req := c.client.R().
-		SetQueryParam("query", city).
-		SetResult(&WeatherStackResponse{})
+type OpenWeatherClient struct {
+	http   *resty.Client
+	apiKey string
+}
 
-	httpResp, err := req.Get("/current")
+func NewOpenWeatherClient(apiKey string) *OpenWeatherClient {
+	return &OpenWeatherClient{
+		http:   newRestyClient(openWeatherBaseURL),
+		apiKey: apiKey,
+	}
+}
+
+func (c *OpenWeatherClient) GetWeather(city string) (*OpenWeatherResponse, error) {
+	req := c.http.R().
+		SetQueryParam("appid", c.apiKey).
+		SetQueryParam("units", "metric"). // Celsius
+		SetQueryParam("q", city).
+		SetResult(&OpenWeatherResponse{})
+	return get[OpenWeatherResponse, OpenWeatherErrorResponse](req, "/data/2.5/weather")
+}
+
+func get[R any, E any](req *resty.Request, url string) (*R, error) {
+	httpResp, err := req.Get(url)
 	if err != nil {
 		return nil, err
 	}
 
-	return httpResp.Result().(*WeatherStackResponse), nil
+	if httpResp.IsSuccess() {
+		return httpResp.Result().(*R), nil
+	}
+
+	var errResp E
+	if err = json.Unmarshal(httpResp.Body(), &errResp); err != nil {
+		return nil, newHTTPError(httpResp.StatusCode(), nil)
+	}
+
+	return nil, newHTTPError(httpResp.StatusCode(), errResp)
+
 }
 
-func newClient(baseURL string) *resty.Client {
+func newRestyClient(baseURL string) *resty.Client {
 	return resty.New().
-		SetRetryCount(3).
-		SetRetryWaitTime(200*time.Millisecond).
 		SetBaseURL(baseURL).
 		SetHeader("Content-Type", "application/json")
+}
+
+func newHTTPError(code int, err any) error {
+	if err != nil {
+		return fmt.Errorf("http error; status code: %d; error: %+v",
+			code,
+			err,
+		)
+	}
+	return fmt.Errorf("http error; status code: %d", code)
 }

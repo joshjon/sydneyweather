@@ -16,7 +16,9 @@ func main() {
 	flag.Parse()
 	e := echo.New()
 	e.Use(middleware.Logger())
-	api.RegisterService(e, api.NewService())
+
+	service := api.NewService(api.Config{})
+	registerService(e, service)
 
 	addr := &net.TCPAddr{
 		IP:   []byte{0, 0, 0, 0},
@@ -26,4 +28,13 @@ func main() {
 	if err := e.Start(addr.String()); err != nil {
 		log.Fatalf("error starting server: %v", err)
 	}
+}
+
+type serviceServer interface {
+	GetWeather(ctx echo.Context) error
+}
+
+func registerService(e *echo.Echo, s serviceServer) {
+	v1 := e.Group("/v1")
+	v1.GET("/weather", s.GetWeather)
 }
