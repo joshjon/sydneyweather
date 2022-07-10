@@ -1,13 +1,17 @@
 package api
 
 import (
+	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/labstack/echo/v4"
 
 	"github.com/joshjon/sydneyweather/internal/weather"
 )
+
+const city = "sydney"
 
 type WeatherStackClient interface {
 	GetWeather(city string) (*weather.WeatherStackResponse, error)
@@ -46,6 +50,10 @@ type GetWeatherResponse struct {
 }
 
 func (s *Service) GetWeather(ctx echo.Context) error {
+	if strings.ToLower(ctx.QueryParam("city")) != city {
+		return echo.NewHTTPError(http.StatusBadRequest, "query param 'city' must have value 'sydney'")
+	}
+
 	if resp, ok := s.respCache.get(); ok {
 		return ctx.JSON(http.StatusOK, resp)
 	}
@@ -65,8 +73,7 @@ func (s *Service) GetWeather(ctx echo.Context) error {
 		}
 		return ctx.JSON(http.StatusOK, resp)
 	}
-
-	// TODO: log error
+	log.Printf("error getting weather from primary source: %v", err)
 
 	failOverResp, err := s.failOver.GetWeather(s.City)
 	if err == nil {
@@ -76,8 +83,7 @@ func (s *Service) GetWeather(ctx echo.Context) error {
 		}
 		return ctx.JSON(http.StatusOK, resp)
 	}
-
-	// TODO: log error
+	log.Printf("error getting weather from fail over source: %v", err)
 
 	return echo.NewHTTPError(http.StatusServiceUnavailable)
 }

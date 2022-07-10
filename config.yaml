@@ -1,0 +1,4 @@
+serverPort: 8080
+cacheExpiry: 3s
+weatherStackAPIKey: # WEATHER_STACK_KEY env var
+openWeatherAPIKey: # OPEN_WEATHER_KEY env var

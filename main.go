@@ -1,40 +1,42 @@
 package main
 
 import (
-	"flag"
 	"log"
 	"net"
-	"time"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 
 	"github.com/joshjon/sydneyweather/internal/api/v1"
+	"github.com/joshjon/sydneyweather/internal/config"
 )
 
-var cfg = api.Config{
-	City:               "Sydney",
-	WeatherStackAPIKey: "",
-	OpenWeatherAPIKey:  "",
-	CacheExpiry:        3 * time.Second,
-}
-
 func main() {
-	var port = flag.Int("p", 8080, "Port for HTTP server")
-	flag.Parse()
+	cfg, err := config.Load()
+	if err != nil {
+		log.Fatalf("error loading config: %v\n", err)
+	}
+
 	e := echo.New()
 	e.Use(middleware.Logger())
 
-	service := api.NewService(cfg)
+	serviceCfg := api.Config{
+		City:               "Sydney",
+		WeatherStackAPIKey: cfg.WeatherStackAPIKey,
+		OpenWeatherAPIKey:  cfg.OpenWeatherAPIKey,
+		CacheExpiry:        cfg.CacheExpiry,
+	}
+
+	service := api.NewService(serviceCfg)
 	registerService(e, service)
 
 	addr := &net.TCPAddr{
 		IP:   []byte{0, 0, 0, 0},
-		Port: *port,
+		Port: cfg.ServerPort,
 	}
 
-	if err := e.Start(addr.String()); err != nil {
-		log.Fatalf("error starting server: %v", err)
+	if err = e.Start(addr.String()); err != nil {
+		log.Fatalf("error starting server: %v\n", err)
 	}
 }
 

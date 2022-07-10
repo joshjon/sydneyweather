@@ -18,8 +18,9 @@ type WeatherStackClient struct {
 }
 
 func NewWeatherStackClient(apiKey string) *WeatherStackClient {
+	client := newRestyClient(weatherStackBaseURL)
 	return &WeatherStackClient{
-		http:   newRestyClient(weatherStackBaseURL),
+		http:   client,
 		apiKey: apiKey,
 	}
 }
